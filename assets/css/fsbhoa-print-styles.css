@@ -1,0 +1,200 @@
+/* --- Main Card Preview Styles (Portrait Layout) --- */
+.id-card-container {
+    width: 2.125in;
+    height: 3.375in;
+    border: 1px solid #333;
+    padding: 5px; /* <-- the space around the photo */
+    font-family: sans-serif;
+    background: #fff;
+    margin: 20px auto;
+    box-sizing: border-box;
+    transform: scale(1.2);
+    transform-origin: top center;
+    margin-bottom: 2em;
+    display: flex; /* Added to help with footer positioning */
+    flex-direction: column; /* Added to help with footer positioning */
+}
+
+.id-card-header {
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.id-card-body {
+    display: flex;
+    flex-direction: column; /* Stack items vertically */
+    align-items: center;   /* Center items horizontally */
+}
+
+.id-card-photo {
+    width: 100%; /* Make the photo span the full width of the card */
+    height: auto; /* The height will adjust automatically to maintain the aspect ratio */
+    aspect-ratio: 375 / 450; /* Set the aspect ratio from your template (375x450) */
+    border: none;
+    margin-bottom: 15px;
+    flex-shrink: 0;
+    background-color: #f0f0f0;
+}
+
+.id-card-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.id-card-info {
+    width: 100%;
+    text-align: center;
+}
+
+.fsbhoa-card-preview-container .id-card-info p {
+    margin: 0 0 4px 0 !important;
+    font-size: 12px !important; /* Set a base size for text like 'Expires:' */
+    font-weight: normal !important;
+}
+
+.fsbhoa-card-preview-container .id-card-info p.card-name {
+    font-size: 22px !important;
+    font-weight: bold !important;
+    margin-bottom: 0px !important;
+    line-height: 0.9 !important;
+}
+
+.id-card-footer {
+    font-size: 9px;
+    text-align: center;
+    margin-top: auto; /* Pushes footer to the bottom */
+}
+
+
+/* --- Two-Column Page Layout --- */
+.fsbhoa-print-page-wrapper {
+    max-width: 900px;
+    margin: 2em auto;
+}
+
+.fsbhoa-print-columns {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 2em;
+}
+
+.fsbhoa-card-preview-container {
+    flex: 1;
+    text-align: center; /* This will center the <h3> title over the card preview */
+}
+
+.fsbhoa-cardholder-details-container {
+    flex: 1;
+}
+
+.details-box {
+    background: #f9f9f9;
+    border: 1px solid #ccc;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.details-box p {
+    margin: 0 0 10px;
+    font-size: 14px;
+}
+.details-box p:last-child {
+    margin-bottom: 0;
+}
+
+
+/* --- Workflow and Status Message Styles --- */
+.workflow-container {
+    max-width: 800px;
+    margin: 2em auto;
+    padding: 1em;
+    border: 1px solid #ccc;
+    text-align: center;
+    display: flex; 
+    flex-direction: column;
+    align-items: center;
+}
+
+.workflow-section {
+    display: none;
+}
+
+#fsbhoa-initial-section {
+    display: block;
+}
+
+#fsbhoa-rfid-section input {
+    font-size: 1.5em;
+    text-align: center;
+    width: 200px;
+}
+
+.status-message {
+    font-weight: bold;
+    font-size: 1.2em;
+    padding: 1em;
+}
+
+.status-error {
+    color: #d63638;
+}
+
+.status-success {
+    color: #4CAF50;
+}
+
+
+.workflow-container {
+    position: relative; /* Establishes a positioning context for the footer */
+    padding-bottom: 60px; /* Creates dedicated space at the bottom */
+}
+
+.fsbhoa-workflow-footer {
+    position: absolute; /* Positions the footer relative to the container */
+    bottom: 15px;       /* 15px from the bottom edge */
+    left: 0;            /* Stretches it across the container */
+    right: 0;
+}
+
+/* --- Card Preview Text Styles --- */
+.id-card-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; /* Aligns text to the top */
+    text-align: center;
+    padding: 0px 5px;          /* 5px space above text block */
+    gap: 0px;                   /* 5px space BETWEEN each line */
+    box-sizing: border-box;
+}
+
+.id-card-info p {
+    margin: 0;
+    padding: 0;
+}
+
+/* More specific selector for the name */
+.id-card-info p.card-name {
+    font-size: 1.8em !important;
+    font-weight: bold;
+    line-height: 1.0;
+}
+
+/* More specific selector for the subtitle */
+.id-card-info p.card-subtitle {
+    font-size: 1.2em !important;
+    font-weight: normal;
+    padding: 0px 5px;          /* 5px space on sides of text block */
+}
+
+
+/* --- Print Media Query --- */
+@media print {
+    body * { visibility: hidden; }
+    .id-card-container, .id-card-container * { visibility: visible; }
+    .id-card-container { position: absolute; left: 0; top: 0; margin: 0; padding: 15px; border: none; }
+    .print-button-container, .fsbhoa-print-page-wrapper { display: none; }
+}
+
