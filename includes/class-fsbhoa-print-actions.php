@@ -179,7 +179,7 @@ class Fsbhoa_Print_Actions {
 
         // Fetch resident type to set a safe default expiry if this is a brand new card
         $person = $wpdb->get_row($wpdb->prepare("SELECT resident_type FROM ac_cardholders WHERE id = %d", $cardholder_id));
-        $existing_cred = $wpdb->get_row($wpdb->prepare("SELECT credential_id, expiration_date FROM ac_credentials WHERE cardholder_id = %d AND credential_type = 'MIFARE_BADGE'", $cardholder_id));
+        $existing_cred = $wpdb->get_row($wpdb->prepare("SELECT id, expiration_date FROM ac_credentials WHERE cardholder_id = %d AND credential_type = 'MIFARE_BADGE'", $cardholder_id));
 
         $expiry_date = ($existing_cred && $existing_cred->expiration_date) ? $existing_cred->expiration_date : (($person && $person->resident_type === 'Contractor') ? '' : '2099-12-31');
 
@@ -192,7 +192,7 @@ class Fsbhoa_Print_Actions {
                     'issue_date'       => current_time('Y-m-d'),
                     'expiration_date'  => $expiry_date ?: '2099-12-31'
                 ],
-                ['credential_id' => $existing_cred->credential_id]
+                ['id' => $existing_cred->id]
             );
         } else {
             $result = $wpdb->insert(
@@ -206,7 +206,16 @@ class Fsbhoa_Print_Actions {
                     'expiration_date'  => $expiry_date ?: '2099-12-31'
                 ]
             );
+
         }
+        $wpdb->update(
+            'ac_cardholders',
+            [
+                'cardholder_status' => 'active',
+                'updated_at'        => current_time('mysql')
+            ],
+            ['id' => $cardholder_id]
+        );
 
         if ($result === false) {
             wp_send_json_error(['message' => 'Database error during card activation: ' . $wpdb->last_error], 500);
