@@ -53,7 +53,7 @@ The plugin is symlinked into WordPress as `wp-content/plugins/fsbhoa_ac_zebra`, 
 4. Go reports progress back by calling `POST /wp-json/fsbhoa/v1/print_log_update` (`class-fsbhoa-print-rest-api.php`), sending the shared Access Verification API Key as `X-API-KEY`. Statuses are `printing`, then `completed_ok` or `failed_error`.
 5. The JS polls `fsbhoa_check_print_status` every 3s, which reads `ac_print_log`. On `COMPLETED_OK` it shows the RFID input and waits for the printed card to be scanned. The scanner types into that field like a keyboard, and 8 or more chars triggers `fsbhoa_save_rfid`, which upserts the `MIFARE_BADGE` credential, sets the cardholder to active and calls `fsbhoa_log_pending_change` so the doors get updated.
 
-**Debug/dry-run mode** (`fsbhoa_ac_print_debug_mode` = `on`): Go skips `lp`, keeps the PNG and reports `completed_ok`. The JS then shows a link to `fsbhoa_serve_dry_run_image`, which serves the PNG.
+**Debug/dry-run mode** (`fsbhoa_ac_print_debug_mode` = `on`): Go skips `lp`, keeps the PNG and reports `completed_ok`. The JS then shows a link to `fsbhoa_serve_dry_run_image`, which serves the PNG. The Go service creates the temp folder if it is missing. At startup and then hourly, it deletes `printjob-*.png` files older than 24 hours, which covers dry-run images and any left by a crash. A normal print deletes its image as soon as the job ends.
 
 ## Configuration flow
 
@@ -65,4 +65,4 @@ Card layout appears in two places, and you need to keep them in sync by hand:
 - The XML template (`zebra_print_service/templates/hoa_card_template.xml`, wherever `fsbhoa_ac_print_template_path` points), which controls what actually gets printed. Go reads only `fonts>font` (id, size) and the front side's `graphic`/`text` elements (field, x, y, width, alignment). The other attributes are ignored.
 - The HTML/CSS badge preview in `includes/views/view-badge-preview-card.php`. The third line's text (title, else expiry) comes from `fsbhoa_zebra_card_line3()`, which both the preview and the print job use. `expiration_date` is a DATETIME (`2099-12-31 00:00:00`), so compare only its date part.
 
-Assets are only enqueued on the page with slug `print-photo-id`, on `?action=print_card`, or on the admin page `fsbhoa_print_card` (see `fsbhoa_zebra_enqueue_assets`). The front-end entry point is the shortcode `[fsbhoa_print_card]`. The shortcode, the asset enqueue (which carries the AJAX nonce) and all four AJAX handlers require `manage_options`.
+Assets are only enqueued on the page with slug `print-photo-id`, or on a front-end page with `?action=print_card` (see `fsbhoa_zebra_enqueue_assets`). There is no wp-admin print page. The front-end entry point is the shortcode `[fsbhoa_print_card]`. The shortcode, the asset enqueue (which carries the AJAX nonce) and all four AJAX handlers require `manage_options`.

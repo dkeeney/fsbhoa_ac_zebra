@@ -44,12 +44,11 @@ add_action( 'fsbhoa_render_card_preview', 'fsbhoa_zebra_render_badge_only', 10, 
 function fsbhoa_zebra_enqueue_assets() {
     global $post;
 
-    // Check if we are on the frontend print page OR the wp-admin print page
+    // Only the front-end print page (core's cardholder and vendor screens link here)
     $is_frontend_print = ( is_a( $post, 'WP_Post' ) && $post->post_name === 'print-photo-id' )
                          || ( isset( $_GET['action'] ) && $_GET['action'] === 'print_card' );
-    $is_admin_print    = ( isset( $_GET['page'] ) && $_GET['page'] === 'fsbhoa_print_card' );
 
-    if ( ! $is_frontend_print && ! $is_admin_print ) {
+    if ( ! $is_frontend_print ) {
         return;
     }
 
@@ -104,7 +103,6 @@ function fsbhoa_zebra_enqueue_assets() {
     ) );
 }
 add_action( 'wp_enqueue_scripts', 'fsbhoa_zebra_enqueue_assets' );
-add_action( 'admin_enqueue_scripts', 'fsbhoa_zebra_enqueue_assets' );
 
 /**
  * Shortcode callback: renders the Zebra card print workflow view

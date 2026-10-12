@@ -16,6 +16,7 @@ import (
     "net/http"
     "os"
     "os/exec"
+    "path/filepath"
     "strconv"
     "strings"
     "time"
@@ -30,6 +31,12 @@ import (
 // --- Global Configuration ---
 var config Config
 var loadedFont *sfnt.Font
+
+// Card images are written here; WordPress serves dry-run images from the same folder.
+const printTempDir = "/var/www/html/wp-content/uploads/fsbhoa_print_temp"
+
+// Dry-run images (kept for viewing) and any left by a crash are deleted after this long.
+const printImageMaxAge = 24 * time.Hour
 
 // --- Data Structures ---
 type PrintRequestPayload struct {
@@ -174,7 +181,10 @@ log.Printf("DEBUG: Checking field '%s' with text '%s'. BoxWidth: %d, InitialSize
         }
     }
 
-    tmpFile, err := os.CreateTemp("/var/www/html/wp-content/uploads/fsbhoa_print_temp", fmt.Sprintf("printjob-%d-*.png", payload.LogID))
+    if err := os.MkdirAll(printTempDir, 0775); err != nil {
+        return "", fmt.Errorf("could not create temp folder %s: %v", printTempDir, err)
+    }
+    tmpFile, err := os.CreateTemp(printTempDir, fmt.Sprintf("printjob-%d-*.png", payload.LogID))
     if err != nil {
         return "", fmt.Errorf("could not create temp file: %v", err)
     }
@@ -334,6 +344,8 @@ func main() {
         log.Printf("WARNING: api_key is empty; status updates to WordPress will be rejected. Generate the Access Verification API Key in the FSBHOA AC General settings, then save the Print Service settings.")
     }
 
+    go cleanupPrintImagesLoop()
+
     http.HandleFunc("/print_card", printCardHandler)
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
         fmt.Fprintf(w, "FSBHOA Go Printer Service is running!")
@@ -376,3 +388,32 @@ func calculateFittingFontSize(label string, initialSize float64, boxWidth int) f
     return size // Return the smallest calculated size if it never fits
 }
 
+// cleanupPrintImagesLoop deletes old card images at startup and then every hour.
+func cleanupPrintImagesLoop() {
+    cleanupOldPrintImages()
+    ticker := time.NewTicker(time.Hour)
+    defer ticker.Stop()
+    for range ticker.C {
+        cleanupOldPrintImages()
+    }
+}
+
+// cleanupOldPrintImages removes printjob-*.png files older than printImageMaxAge.
+func cleanupOldPrintImages() {
+    files, err := filepath.Glob(filepath.Join(printTempDir, "printjob-*.png"))
+    if err != nil {
+        log.Printf("Cleanup: could not list %s: %v", printTempDir, err)
+        return
+    }
+    for _, file := range files {
+        info, err := os.Stat(file)
+        if err != nil || time.Since(info.ModTime()) < printImageMaxAge {
+            continue
+        }
+        if err := os.Remove(file); err != nil {
+            log.Printf("Cleanup: could not delete %s: %v", file, err)
+        } else {
+            log.Printf("Cleanup: deleted old print image %s", file)
+        }
+    }
+}
