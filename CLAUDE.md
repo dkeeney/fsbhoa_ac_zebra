@@ -63,6 +63,6 @@ Settings are WP options (`fsbhoa_ac_print_*`, `fsbhoa_ac_card_back_url`) edited 
 
 Card layout appears in two places, and you need to keep them in sync by hand:
 - The XML template (`zebra_print_service/templates/hoa_card_template.xml`, wherever `fsbhoa_ac_print_template_path` points), which controls what actually gets printed. Go reads only `fonts>font` (id, size) and the front side's `graphic`/`text` elements (field, x, y, width, alignment). The other attributes are ignored.
-- The HTML/CSS badge preview in `includes/views/view-badge-preview-card.php`, which also builds the line3/expiry logic itself.
+- The HTML/CSS badge preview in `includes/views/view-badge-preview-card.php`. The third line's text (title, else expiry) comes from `fsbhoa_zebra_card_line3()`, which both the preview and the print job use. `expiration_date` is a DATETIME (`2099-12-31 00:00:00`), so compare only its date part.
 
-Assets are only enqueued on the page with slug `print-photo-id`, on `?action=print_card`, or on the admin page `fsbhoa_print_card` (see `fsbhoa_zebra_enqueue_assets`). The front-end entry point is the shortcode `[fsbhoa_print_card]`, which requires `manage_options`.
+Assets are only enqueued on the page with slug `print-photo-id`, on `?action=print_card`, or on the admin page `fsbhoa_print_card` (see `fsbhoa_zebra_enqueue_assets`). The front-end entry point is the shortcode `[fsbhoa_print_card]`. The shortcode, the asset enqueue (which carries the AJAX nonce) and all four AJAX handlers require `manage_options`.

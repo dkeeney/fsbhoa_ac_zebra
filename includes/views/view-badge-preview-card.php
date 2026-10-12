@@ -4,6 +4,26 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 /**
+ * Third line of the badge, shared by the preview and the printed card:
+ * the title if there is one, otherwise "Expires: m/d/Y".
+ * 2099-12-31 means "never expires" and is not shown. expiration_date is a
+ * DATETIME, so only its date part is compared.
+ */
+function fsbhoa_zebra_card_line3( $cardholder ) {
+    $title = trim( $cardholder['title'] ?? '' );
+    if ( '' !== $title ) {
+        return $title;
+    }
+
+    $expiry = trim( (string) ( $cardholder['card_expiry_date'] ?? '' ) );
+    if ( '' === $expiry || '2099-12-31' === substr( $expiry, 0, 10 ) ) {
+        return '';
+    }
+    $timestamp = strtotime( $expiry );
+    return $timestamp ? 'Expires: ' . date( 'm/d/Y', $timestamp ) : '';
+}
+
+/**
  * Renders just the physical 2.125" x 3.375" Zebra ID Badge.
  * Used by the Archive detail hook.
  */
@@ -28,12 +48,7 @@ function fsbhoa_zebra_render_badge_only( $cardholder_id, $cardholder = null ) {
     $title      = trim( $cardholder['title'] ?? '' );
     $photo_src  = ! empty( $cardholder['photo'] ) ? 'data:image/jpeg;base64,' . base64_encode( $cardholder['photo'] ) : '';
 
-    $subtitle_text = '';
-    if ( ! empty( $title ) ) {
-        $subtitle_text = $title;
-    } elseif ( ! empty( $cardholder['card_expiry_date'] ) && '2099-12-31' !== $cardholder['card_expiry_date'] ) {
-        $subtitle_text = 'Expires: ' . date( 'm/d/Y', strtotime( $cardholder['card_expiry_date'] ) );
-    }
+    $subtitle_text = fsbhoa_zebra_card_line3( $cardholder );
     ?>
     <style>
         .fsbhoa-id-card-box {

@@ -22,6 +22,9 @@ class Fsbhoa_Print_Actions {
      */
     public function ajax_submit_print_job() {
         check_ajax_referer('fsbhoa_print_card_nonce', 'security');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+        }
 
         if (!isset($_POST['cardholder_id']) || !is_numeric($_POST['cardholder_id'])) {
             wp_send_json_error(['message' => 'Invalid Cardholder ID.'], 400);
@@ -86,15 +89,8 @@ class Fsbhoa_Print_Actions {
             'cardBackLogo'  => $card_back_base64,
         ];
 
-       $line3_text = '';
-        // Prioritize the title
-        if (!empty(trim($cardholder['title']))) {
-            $line3_text = trim($cardholder['title']);
-        } 
-        // If no title, check for an expiration date
-        else if (isset($cardholder['card_expiry_date']) && $cardholder['card_expiry_date'] !== '2099-12-31') {
-            $line3_text = 'Expires: ' . date('m/d/Y', strtotime($cardholder['card_expiry_date']));
-        }
+        // Same rule as the preview card (title, else expiry unless 2099-12-31)
+        $line3_text = fsbhoa_zebra_card_line3($cardholder);
 
         // Only add the field if there is content for it
         if (!empty($line3_text)) {
@@ -140,6 +136,9 @@ class Fsbhoa_Print_Actions {
      */
     public function ajax_check_print_status() {
         check_ajax_referer('fsbhoa_print_card_nonce', 'security');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+        }
 
         if (!isset($_POST['log_id']) || !is_numeric($_POST['log_id'])) {
             wp_send_json_error(['message' => 'No Log ID provided.'], 400);
@@ -167,6 +166,9 @@ class Fsbhoa_Print_Actions {
      */
     public function ajax_save_rfid_and_activate() {
         check_ajax_referer('fsbhoa_print_card_nonce', 'security');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+        }
 
         if (!isset($_POST['cardholder_id']) || !is_numeric($_POST['cardholder_id']) || !isset($_POST['rfid_id'])) {
             wp_send_json_error(['message' => 'Invalid data provided.'], 400);
@@ -263,6 +265,10 @@ class Fsbhoa_Print_Actions {
      * Finds and serves a generated dry-run image from /var/tmp.
      */
     public function ajax_serve_dry_run_image() {
+        if (!current_user_can('manage_options')) {
+            status_header(403);
+            die('Permission denied.');
+        }
         if (!isset($_GET['log_id']) || !is_numeric($_GET['log_id'])) {
             status_header(400);
             die('Invalid Log ID.');

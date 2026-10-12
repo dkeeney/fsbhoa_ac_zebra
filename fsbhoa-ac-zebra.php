@@ -53,6 +53,11 @@ function fsbhoa_zebra_enqueue_assets() {
         return;
     }
 
+    // Only admins may print; don't hand anyone else the AJAX nonce
+    if ( ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+
     $cardholder_id = isset( $_GET['cardholder_id'] ) ? absint( $_GET['cardholder_id'] ) : 0;
 
     // Resolve dynamic return URL based on cardholder_type
