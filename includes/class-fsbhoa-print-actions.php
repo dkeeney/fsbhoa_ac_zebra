@@ -173,9 +173,38 @@ class Fsbhoa_Print_Actions {
         }
 
         $cardholder_id = absint($_POST['cardholder_id']);
-        $rfid_id = sanitize_text_field($_POST['rfid_id']);
+        $rfid_id = sanitize_text_field(wp_unslash(trim($_POST['rfid_id'])));
+
+        // Same format rule as the cardholder edit screen
+        if (!preg_match('/^[a-zA-Z0-9]{8}$/', $rfid_id)) {
+            wp_send_json_error(['message' => 'RFID ID must be 8 alphanumeric characters.'], 400);
+        }
 
         global $wpdb;
+
+        // A badge number must be unique among active cardholders, whatever its credential status.
+        // Archived/purged holders don't count (core drops a conflicting badge on restore).
+        $holder = $wpdb->get_row($wpdb->prepare(
+            "SELECT c.first_name, c.last_name
+             FROM ac_credentials cred
+             JOIN ac_cardholders c ON c.id = cred.cardholder_id
+             WHERE cred.credential_value = %s
+               AND cred.credential_type = 'MIFARE_BADGE'
+               AND cred.cardholder_id != %d
+               AND c.cardholder_status = 'active'
+             LIMIT 1",
+            $rfid_id,
+            $cardholder_id
+        ));
+        if ($wpdb->last_error) {
+            wp_send_json_error(['message' => 'Database error checking for a duplicate RFID: ' . $wpdb->last_error], 500);
+        }
+        if ($holder) {
+            $holder_name = trim($holder->first_name . ' ' . $holder->last_name);
+            wp_send_json_error([
+                'message' => sprintf('RFID %s is already assigned to %s. Scan a different card.', $rfid_id, $holder_name),
+            ], 409);
+        }
 
         // Fetch resident type to set a safe default expiry if this is a brand new card
         $person = $wpdb->get_row($wpdb->prepare("SELECT resident_type FROM ac_cardholders WHERE id = %d", $cardholder_id));

@@ -6,7 +6,7 @@ This plugin extends fsbhoa_ac_core.  @/home/pi/fsbhoa_ac_core/other_docs/ARCHITE
 
 ## What this is
 
-An add-on that manages the Zebra ZC300 card printer attached to this server (default CUPS queue `Zebra-ZC300`) and issues photo ID badges.
+An add-on that manages the Zebra ZC300 card printer (a network printer reached through the local CUPS queue, default `Zebra-ZC300`) and issues photo ID badges.
 
 The physical process:
 1. An admin clicks Print. The plugin builds the card image and sends it to CUPS.
@@ -14,7 +14,16 @@ The physical process:
 3. Staff put an adhesive sticker on the back. It carries the HOA logo and phone number, which is why only the front is printed.
 4. Staff scan the card. The scan saves the RFID number as the cardholder's `MIFARE_BADGE` credential and activates it.
 
-The plugin can't know which pre-encoded card the printer pulled until it is scanned. That is why the UI waits for a scan once the print job is done. The `cardBackLogo` field is still sent to the Go service, but the service only draws the front side, so it is never printed.
+The plugin can't know which pre-encoded card the printer pulled until it is scanned. That is why the UI waits for a scan once the print job is done. The `cardBackLogo` field and the Card Back Logo setting are kept on purpose. Once the current stickers run out, the back will be printed instead. That will need back-side rendering in the Go service, which today draws only the front. Don't remove them as unused. The ZC300 has the two-sided option, so both sides can print in one pass.
+
+### Domain facts
+
+- **Badge number format.** The USB desk scanner and the UHPPOTE Wiegand readers produce the same 8-digit decimal string. The facility code (2 hex digits) becomes 3 decimal digits and the card number (4 hex digits) becomes 5, each zero-padded, for example `12345678`. The scanner types it like a keyboard with no Enter at the end. That is why the JS saves as soon as the field reaches 8 characters.
+- **Badge numbers must be unique among active cardholders** (`cardholder_status = 'active'`), whatever the credential's own status. A disabled badge still reserves its number. `ajax_save_rfid` refuses a number already on another active cardholder and keeps the page on the scan step. Archived and purged holders don't count. Purged cardholders keep their credential rows, so the same number can appear on a purged record and an active one. The cardholder edit screen, which is the manual fallback when activation is missed, has its own check in `fsbhoa_ac_uhppote`.
+- **Reprints replace the old badge.** Saving a new number overwrites the cardholder's existing `MIFARE_BADGE` row. The old card stops working once the change syncs to the controllers. This is intended.
+- **Expiry.** `2099-12-31` means "never expires". Badge expiry is supported but not used today.
+- **`cardholder_type` vs `resident_type`.** These are different things. `cardholder_type` is `resident` (tied to a property address) or `vendor` (no address, managed by different screens). `resident_type` is a separate attribute of the cardholder.
+- **Testbed.** There is no `FSBHOA_AC_ENVIRONMENT` guard. The testbed can point its CUPS queue at the same printer as production, and a testbed print uses up a real pre-encoded card. Testbed printing is rare. Use Debug Mode to test without printing.
 
 It has two halves that run on the same Raspberry Pi (aarch64):
 
@@ -48,7 +57,7 @@ The plugin is symlinked into WordPress as `wp-content/plugins/fsbhoa_ac_zebra`, 
 
 ### REST auth differs from the shared convention
 
-`print_log_update` does not use the Access Verification API Key and `X-API-KEY`. It checks header `X-Internal-API-Key` against its own option, `fsbhoa_ac_print_api_token`. `Fsbhoa_Zebra_Settings` seeds that option from a default that is hard-coded in the source.
+`print_log_update` does not use the Access Verification API Key and `X-API-KEY`. It checks header `X-Internal-API-Key` against its own option, `fsbhoa_ac_print_api_token`. `Fsbhoa_Zebra_Settings` seeds that option from a default that is hard-coded in the source. Moving it to the shared key is a low-priority to-do.
 
 ## Configuration flow
 

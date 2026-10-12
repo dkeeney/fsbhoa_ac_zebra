@@ -87,6 +87,7 @@ function fsbhoa_render_printable_card_view() {
             <h3><?php esc_html_e( 'Print Complete!', 'fsbhoa-ac' ); ?></h3>
             <p><?php esc_html_e( 'Please swipe the newly printed card now.', 'fsbhoa-ac' ); ?></p>
             <input type="text" id="fsbhoa-rfid-input" maxlength="8" autofocus />
+            <p id="fsbhoa-rfid-error" class="status-message status-error" style="display: none;"></p>
         </div>
 
         <div id="fsbhoa-dryrun-section" class="fsbhoa-workflow-section">

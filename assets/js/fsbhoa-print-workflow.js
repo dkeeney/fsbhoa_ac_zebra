@@ -8,7 +8,7 @@ jQuery(document).ready(function($) {
 
     // --- UI Helper Functions ---
     function showSection(sectionId) {
-        $('.workflow-section').hide();
+        $('.fsbhoa-workflow-section').hide();
         $(sectionId).show();
     }
 
@@ -130,7 +130,15 @@ jQuery(document).ready(function($) {
                     showStatusMessage('Error activating card: ' + response.data.message, 'error');
                 }
             },
-            error: function() {
+            error: function(xhr) {
+                // Duplicate or badly formatted number: stay on the scan step so another card can be swiped
+                if (xhr.status === 400 || xhr.status === 409) {
+                    const errorMsg = xhr.responseJSON ? xhr.responseJSON.data.message : 'The RFID was rejected.';
+                    showSection('#fsbhoa-rfid-section');
+                    $('#fsbhoa-rfid-error').text(errorMsg).show();
+                    $('#fsbhoa-rfid-input').val('').prop('disabled', false).focus();
+                    return;
+                }
                 showStatusMessage('A critical error occurred while saving the RFID.', 'error');
             }
         });
