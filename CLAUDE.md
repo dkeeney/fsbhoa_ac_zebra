@@ -6,7 +6,17 @@ This plugin extends fsbhoa_ac_core.  @/home/pi/fsbhoa_ac_core/other_docs/ARCHITE
 
 ## What this is
 
-An add-on that prints photo ID badges on a Zebra card printer (default CUPS queue `Zebra-ZC300`). It has two halves that run on the same Raspberry Pi (aarch64):
+An add-on that manages the Zebra ZC300 card printer attached to this server (default CUPS queue `Zebra-ZC300`) and issues photo ID badges.
+
+The physical process:
+1. An admin clicks Print. The plugin builds the card image and sends it to CUPS.
+2. The ZC300 prints the front of a blank card from the feeder. The cards come pre-encoded with random RFID numbers.
+3. Staff put an adhesive sticker on the back. It carries the HOA logo and phone number, which is why only the front is printed.
+4. Staff scan the card. The scan saves the RFID number as the cardholder's `MIFARE_BADGE` credential and activates it.
+
+The plugin can't know which pre-encoded card the printer pulled until it is scanned. That is why the UI waits for a scan once the print job is done. The `cardBackLogo` field is still sent to the Go service, but the service only draws the front side, so it is never printed.
+
+It has two halves that run on the same Raspberry Pi (aarch64):
 
 - **WordPress plugin** (repo root: `fsbhoa-ac-zebra.php`, `includes/`, `assets/`): the print UI, AJAX workflow and settings page.
 - **Go print service** (`zebra_print_service/`): a localhost HTTP daemon (systemd unit `fsbhoa_printer`) that renders the card image and sends it to CUPS.
@@ -32,7 +42,7 @@ The plugin is symlinked into WordPress as `wp-content/plugins/fsbhoa_ac_zebra`, 
 2. `Fsbhoa_Print_Actions::ajax_submit_print_job` inserts an `ac_print_log` row (status `submitted`) and builds a payload `{log_id, template_xml, fields}`. `fields` holds `firstName`, `lastName`, `residentPhoto` (base64 of the photo BLOB), `cardBackLogo`, and `line3` (the title if there is one, otherwise "Expires: …" unless the expiry is the sentinel `2099-12-31`). It then POSTs to `http://127.0.0.1:<fsbhoa_ac_print_port>/print_card`.
 3. The Go service replies 202 right away and handles the job in a goroutine. It parses the template XML, draws a 640×1016 portrait PNG (front side only, DejaVuSans font, firstName and lastName auto-shrink to fit their box width) into `wp-content/uploads/fsbhoa_print_temp/printjob-<log_id>-*.png`, runs `lp -d <printer>`, and polls `lpstat -o` until the job leaves the queue (2 min timeout).
 4. Go reports progress back by calling `POST /wp-json/fsbhoa/v1/print_log_update` (`class-fsbhoa-print-rest-api.php`). Statuses are `printing`, then `completed_ok` or `failed_error`.
-5. The JS polls `fsbhoa_check_print_status` every 3s, which reads `ac_print_log`. On `COMPLETED_OK` it shows the RFID input. A scan of 8 or more chars triggers `fsbhoa_save_rfid`, which upserts the `MIFARE_BADGE` credential, sets the cardholder to active and calls `fsbhoa_log_pending_change` so the doors get updated.
+5. The JS polls `fsbhoa_check_print_status` every 3s, which reads `ac_print_log`. On `COMPLETED_OK` it shows the RFID input and waits for the printed card to be scanned. The scanner types into that field like a keyboard, and 8 or more chars triggers `fsbhoa_save_rfid`, which upserts the `MIFARE_BADGE` credential, sets the cardholder to active and calls `fsbhoa_log_pending_change` so the doors get updated.
 
 **Debug/dry-run mode** (`fsbhoa_ac_print_debug_mode` = `on`): Go skips `lp`, keeps the PNG and reports `completed_ok`. The JS then shows a link to `fsbhoa_serve_dry_run_image`, which serves the PNG.
 
