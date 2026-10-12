@@ -2,21 +2,18 @@
 if ( ! defined( 'WPINC' ) ) { die; }
 
 class Fsbhoa_Zebra_Settings {
-    private const DEFAULT_PRINT_API_TOKEN = 'eZdaPzde/0JGMirn6DV4VPSErRerexAiqZBCQj/T3Vg=';
     private $print_service_config_path = '/var/lib/fsbhoa/zebra_print_service.json';
     private $parent_slug = 'fsbhoa_ac_main_menu';
     private $page_slug = 'fsbhoa_print_service_settings';
     private $option_group = 'fsbhoa_print_service_options';
 
     public function __construct() {
-        if (!get_option('fsbhoa_ac_print_api_token')) {
-            update_option('fsbhoa_ac_print_api_token', self::DEFAULT_PRINT_API_TOKEN);
-        }
-
         add_action( 'admin_menu', array( $this, 'add_menu_page' ) );
         add_action( 'admin_init', array( $this, 'register_settings' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_action( 'wp_ajax_fsbhoa_save_print_settings', array( $this, 'ajax_save_print_settings' ) );
+        // Saving core's General settings (e.g. a new Access Verification API Key) rewrites our config too
+        add_action( 'fsbhoa_update_service_configs', array( $this, 'write_json_config' ) );
     }
 
     public function add_menu_page() {
@@ -51,7 +48,6 @@ class Fsbhoa_Zebra_Settings {
         register_setting($this->option_group, 'fsbhoa_ac_print_debug_mode', 'sanitize_text_field');
         register_setting($this->option_group, 'fsbhoa_ac_card_back_url', 'esc_url_raw');
         register_setting($this->option_group, 'fsbhoa_ac_print_template_path', 'sanitize_text_field');
-        register_setting($this->option_group, 'fsbhoa_ac_print_api_token', 'sanitize_text_field');
     }
 
     public function render_field_callback($args) {
@@ -160,11 +156,12 @@ class Fsbhoa_Zebra_Settings {
         wp_send_json_success('Zebra Print Service settings saved.');
     }
 
-    private function write_json_config() {
+    public function write_json_config() {
         $print_config = [
             'port'         => (int) get_option('fsbhoa_ac_print_port', 8081),
             'api_url'      => get_site_url() . '/wp-json/fsbhoa/v1/print_log_update',
-            'api_token'    => get_option('fsbhoa_ac_print_api_token', ''),
+            // Core's Access Verification API Key, sent as X-API-KEY to print_log_update
+            'api_key'      => get_option('fsbhoa_ac_verify_api_key', ''),
             'printer_name' => get_option('fsbhoa_ac_printer_name', 'Zebra-ZC300'),
             'debug_mode'   => (get_option('fsbhoa_ac_print_debug_mode', 'off') === 'on'),
         ];
@@ -174,6 +171,9 @@ class Fsbhoa_Zebra_Settings {
         
         if (!is_dir($config_dir)) { mkdir($config_dir, 0755, true); }
         file_put_contents($this->print_service_config_path, $json_data);
+
+        // The print service used to have its own token; it now uses the shared key
+        delete_option('fsbhoa_ac_print_api_token');
     }
 }
 

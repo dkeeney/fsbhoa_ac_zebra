@@ -18,27 +18,9 @@ class Fsbhoa_Print_REST_API {
         register_rest_route( $this->namespace, '/print_log_update', array(
             'methods'             => 'POST',
             'callback'            => array( $this, 'update_log_callback' ),
-            'permission_callback' => array( $this, 'check_internal_api_key' ),
+            // Core's Access Verification API Key (X-API-KEY), shared by all our services
+            'permission_callback' => array( 'Fsbhoa_Verification_REST_API', 'api_key_permission_check' ),
         ) );
-    }
-
-    /**
-     * Permission callback to verify the internal API key.
-     *
-     * @param WP_REST_Request $request The request object.
-     * @return bool|WP_Error True if the key is valid, otherwise a WP_Error.
-     */
-    public function check_internal_api_key( $request ) {
-        $stored_token = get_option('fsbhoa_ac_print_api_token');
-        $request_token = $request->get_header('X-Internal-API-Key');
-
-        // Ensure tokens are not empty and are strings
-        if ( empty($stored_token) || empty($request_token) || !is_string($request_token) ) {
-            return false;
-        }
-        
-        // Use hash_equals for a timing-attack-safe comparison
-        return hash_equals( $stored_token, $request_token );
     }
 
     /**

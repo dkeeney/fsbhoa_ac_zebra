@@ -90,7 +90,7 @@ func updatePrintStatusInWordPress(logID int, status string, message string) {
         return
     }
     req.Header.Set("Content-Type", "application/json")
-    req.Header.Set("X-Internal-API-Key", config.ApiToken)
+    req.Header.Set("X-API-KEY", config.ApiKey)
     client := &http.Client{Timeout: 10 * time.Second}
     resp, err := client.Do(req)
     if err != nil {
@@ -330,6 +330,9 @@ func main() {
         log.Fatalf("FATAL: Could not load config file '%s': %v", *configFile, err)
     }
     log.Printf("Configuration loaded successfully from %s", *configFile)
+    if config.ApiKey == "" {
+        log.Printf("WARNING: api_key is empty; status updates to WordPress will be rejected. Generate the Access Verification API Key in the FSBHOA AC General settings, then save the Print Service settings.")
+    }
 
     http.HandleFunc("/print_card", printCardHandler)
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

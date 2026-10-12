@@ -10,7 +10,7 @@ import (
 type Config struct {
     Port     int    `json:"port"`
     ApiURL   string `json:"api_url"`
-    ApiToken string `json:"api_token"`
+    ApiKey   string `json:"api_key"` // core's Access Verification API Key, sent as X-API-KEY
     PrinterName string `json:"printer_name"`
     DebugMode   bool   `json:"debug_mode"`
 }
