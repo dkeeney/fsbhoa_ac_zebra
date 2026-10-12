@@ -1,13 +1,14 @@
 #!/bin/bash
-# build.sh
-# Purpose: Compile the Zebra Printer service.
+# build.sh (Zebra Plugin)
+# Purpose: Compile the fsbhoa_printer service binary.
 # Usage: ./build.sh        (Builds only)
 #        ./build.sh install (Builds, Installs to /usr/local/bin, and Restarts service)
 
 BASE_DIR="$(pwd)"
-echo "--- Starting Zebra Printer Build Process ---"
+echo "--- Starting Zebra Build Process ---"
 
-echo "Building Printer Service..."
+# --- 1. PRINTER SERVICE ---
+echo "1. Building Printer Service..."
 cd "$BASE_DIR/zebra_print_service" || exit
 go build -o fsbhoa_printer .
 if [ $? -eq 0 ]; then echo "   [OK] fsbhoa_printer built"; else echo "   [FAIL] Printer build failed"; exit 1; fi
@@ -15,7 +16,7 @@ if [ $? -eq 0 ]; then echo "   [OK] fsbhoa_printer built"; else echo "   [FAIL] 
 # --- OPTIONAL: INSTALL ---
 if [ "$1" == "install" ]; then
     echo ""
-    echo "--- Installing and Restarting Service (Sudo Required) ---"
+    echo "--- Installing and Restarting Printer Service (Sudo Required) ---"
 
     echo "Stopping service..."
     sudo systemctl stop fsbhoa_printer
@@ -36,6 +37,6 @@ if [ "$1" == "install" ]; then
 else
     echo ""
     echo "--- Build Complete (No Install) ---"
-    echo "To install and restart the service, run: ./build.sh install"
+    echo "To install and restart services, run: ./build.sh install"
 fi
 
