@@ -6,8 +6,8 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Third line of the badge, shared by the preview and the printed card:
  * the title if there is one, otherwise "Expires: m/d/Y".
- * 2099-12-31 means "never expires" and is not shown. expiration_date is a
- * DATETIME, so only its date part is compared.
+ * 2099-12-31 means "never expires" and is not shown. Only the date part is
+ * compared, in case a time is attached.
  */
 function fsbhoa_zebra_card_line3( $cardholder ) {
     $title = trim( $cardholder['title'] ?? '' );

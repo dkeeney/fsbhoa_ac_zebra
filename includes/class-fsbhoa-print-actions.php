@@ -208,11 +208,11 @@ class Fsbhoa_Print_Actions {
             ], 409);
         }
 
-        // Fetch resident type to set a safe default expiry if this is a brand new card
-        $person = $wpdb->get_row($wpdb->prepare("SELECT resident_type FROM ac_cardholders WHERE id = %d", $cardholder_id));
+        // Keep an existing badge's expiry (a Contractor's); a new badge never expires (2099-12-31)
         $existing_cred = $wpdb->get_row($wpdb->prepare("SELECT id, expiration_date FROM ac_credentials WHERE cardholder_id = %d AND credential_type = 'MIFARE_BADGE'", $cardholder_id));
 
-        $expiry_date = ($existing_cred && $existing_cred->expiration_date) ? $existing_cred->expiration_date : (($person && $person->resident_type === 'Contractor') ? '' : '2099-12-31');
+        $existing_expiry = $existing_cred ? substr((string) $existing_cred->expiration_date, 0, 10) : '';
+        $expiry_date = ($existing_expiry !== '' && $existing_expiry !== '0000-00-00') ? $existing_expiry : '2099-12-31';
 
         if ($existing_cred) {
             $result = $wpdb->update(
@@ -221,7 +221,7 @@ class Fsbhoa_Print_Actions {
                     'credential_value' => $rfid_id,
                     'status'           => 'active',
                     'issue_date'       => current_time('Y-m-d'),
-                    'expiration_date'  => $expiry_date ?: '2099-12-31'
+                    'expiration_date'  => $expiry_date
                 ],
                 ['id' => $existing_cred->id]
             );
@@ -234,7 +234,7 @@ class Fsbhoa_Print_Actions {
                     'credential_value' => $rfid_id,
                     'status'           => 'active',
                     'issue_date'       => current_time('Y-m-d'),
-                    'expiration_date'  => $expiry_date ?: '2099-12-31'
+                    'expiration_date'  => $expiry_date
                 ]
             );
 
