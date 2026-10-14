@@ -145,11 +145,23 @@ class Fsbhoa_Zebra_Settings {
         check_ajax_referer('fsbhoa_print_settings_nonce', 'nonce');
         if (!current_user_can('manage_options')) { wp_send_json_error('Permission denied.', 403); }
 
-        $options = isset($_POST['options']) ? $_POST['options'] : [];
-        if (!empty($options)) {
-            foreach ($options as $option) {
-                update_option(sanitize_key($option['name']), sanitize_text_field($option['value']));
+        // Only options registered in this page's group are saved; update_option() cleans
+        // each with the sanitize callback it was registered with.
+        $allowed = [];
+        foreach (get_registered_settings() as $name => $args) {
+            if (($args['group'] ?? '') === $this->option_group) {
+                $allowed[$name] = true;
             }
+        }
+
+        $options = isset($_POST['options']) && is_array($_POST['options']) ? wp_unslash($_POST['options']) : [];
+        foreach ($options as $option) {
+            $name = sanitize_key($option['name'] ?? '');
+            if (!isset($allowed[$name])) {
+                error_log("FSBHOA Print Service Settings: ignored unregistered option '{$name}'.");
+                continue;
+            }
+            update_option($name, $option['value'] ?? '');
         }
 
         $this->write_json_config();
